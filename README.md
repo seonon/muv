@@ -20,9 +20,11 @@ Markup languages like markdown are widely used as program documents and personal
 ## Features
 
 1. Text highlight.
-2. Source code highlight
-3. Images and links extraction
-4. Custom palette
+2. Code blocks
+3. Tables
+4. Source code highlight
+5. Images and links extraction
+6. Custom palette
 
 ## Installation
 
@@ -53,7 +55,7 @@ pip install .
 ## Usage
 
 ```python
-$ muv -h
+\$ muv -h
 usage:  [-h] [-p palette file location] [-c config file location] [--version]
         markdown file to view
 
@@ -64,7 +66,7 @@ positional arguments:
                         the file to preview
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, \-\-help            show this help message and exit
   -p palette file location, --palette palette file location
                         palettes file show how tags or class being rendered
   -c config file location, --config config file location
