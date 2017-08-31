@@ -54,8 +54,8 @@ pip install .
 
 ## Usage
 
-```python
-\$ muv -h
+```
+$ muv -h
 usage:  [-h] [-p palette file location] [-c config file location] [--version]
         markdown file to view
 
@@ -66,7 +66,7 @@ positional arguments:
                         the file to preview
 
 optional arguments:
-  -h, \-\-help            show this help message and exit
+  -h, --help            show this help message and exit
   -p palette file location, --palette palette file location
                         palettes file show how tags or class being rendered
   -c config file location, --config config file location
