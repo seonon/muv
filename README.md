@@ -2,20 +2,20 @@
 Markup languages like markdown are widely used as program documents and personal blogs. While sometimes we tend to work in a command line environment and need to view these makeup files. And there isn't viewers availble to preview them nicely. Now, we have a option.
 `muv` is a Python based previewer using urwid as a base display and support lots of features including highlight, padding and so on.
  
-[Example](#examples)
-[Features](#features)
-[Installation](#installation)
-    -[pip](#pip)
-    -[Manual](#manual)
-        -[Requirements](#requirements)
-        -[Manual Instalation](#manual-installation)
-[Usage](#usage)
-[Customization](#customization)
+* [Example](#examples)
+* [Features](#features)
+* [Installation](#installation)
+    * [pip](#pip)
+    * [Manual](#manual)
+        * [Requirements](#requirements)
+        * [Manual Instalation](#manual-installation)
+* [Usage](#usage)
+* [Customization](#customization)
 
 ## Examples
 
-[Example](images/example1.png)
-[Example](images/example2.png)
+![Example](images/example1.png)
+![Example](images/example2.png)
 
 ## Features
 
