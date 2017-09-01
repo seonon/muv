@@ -1,19 +1,23 @@
 """
 
 """
-import urwid
-import markdown
+import logging
 import webbrowser
-from mdx_gfm import GithubFlavoredMarkdownExtension
-from bs4 import BeautifulSoup
-from bs4.element import Tag, NavigableString
-from .util import make_padding
+import re
 
+import markdown
+import urwid
+from bs4 import BeautifulSoup
+from bs4.element import NavigableString, Tag
+from mdx_gfm import GithubFlavoredMarkdownExtension
+
+from .util import make_padding
 
 
 class ContentParser:
 
-    def __init__(self):
+    def __init__(self, config={}):
+        self.config = config if config else {}
         self.tag2method = {
             'code': self.simple_tag2markup,
             'em': self.simple_tag2markup,
@@ -22,12 +26,12 @@ class ContentParser:
             }
         self.highlight_set = ['kd', 'nx', 'nf', 'ne', 's1', 's2', 'k']
 
-    def markdown2markup(self, file_name):
-        html = self.markdown2html(file_name)
+    def markdown2markup(self, infile):
+        html = self.markdown2html(infile)
         return self.html2markup(html)
 
-    def markdown2html(self, file_name):
-        source = open(file_name).read()
+    def markdown2html(self, infile):
+        source = open(infile).read()
         html = markdown.markdown(source, extensions=[GithubFlavoredMarkdownExtension()])
         return html
 
@@ -46,18 +50,20 @@ class ContentParser:
             listbox_content.append(markup)
         return listbox_content
 
-    def tag2text(self, element):
+    def tag2text(self, element, markup_name=None):
         content = []
         for child in element.children:
             if isinstance(child, Tag):
                 method = self.tag2method.get(child.name, getattr(self, '_'+child.name, self.tag2text))
-                inner_content = method(child)
+                inner_content = method(child, markup_name)
                 content.append(inner_content)
             else:
                 content.append(child)
-        return ''.join(content)
+        if not content:
+            return ""
+        return (element.name, content)
     
-    def simple_tag2markup(self, element):
+    def simple_tag2markup(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -66,24 +72,27 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        return (element.name,markups)
+        return (markup_name or element.name,markups)
     
-    @make_padding(7, 2)
-    def _blockquote(self, element):
+    @make_padding(7, 4)
+    def _blockquote(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
                 method = self.tag2method.get(child.name, getattr(self, '_'+child.name, self.tag2text))
-                markup = method(child)
+                markup = method(child, 'blockquote')
                 markups.append(markup)
             else:
                 markups.append(child)
-        quote = urwid.Text((element.name,markups))
+        quote = urwid.Text((markup_name or element.name,markups))
+        innePadder = urwid.Padding(quote, align='left', width=('relative', 100), min_width=None, left=2, right=2)
+        block = urwid.AttrMap(innePadder, 'blockquote')
         void_divider = urwid.Divider(" ")
         #block = urwid.AttrMap(quote, 'header')
-        return urwid.Pile([void_divider, quote, void_divider])
+        return urwid.Pile([void_divider, block, void_divider])
 
-    def _p(self, element):
+    def _p(self, element, markup_name=None):
+        markup_name = markup_name or element.name
         markups = []
         for child in element.children:
             if child.name:
@@ -92,18 +101,18 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        return (element.name,markups)
+        return (markup_name,markups)
 
     
-    def _img(self, element):
+    def _img(self, element, markup_name=None):
         #<img alt="GitHub Logo" src="/images/logo.png" />
         url = element.attrs.get('src', 'No link')
         alt = element.attrs.get('alt', 'Here is a image from '+url) 
 
-        markup =  ('img', [('alt', alt),  ' (', ('url', url), ')'])
+        markup =  (markup_name or 'img', [('alt', alt),  ' (', ('url', url), ')'])
         return markup
 
-    def _a(self, element):
+    def _a(self, element, markup_name=None):
         #<a href="http://github.com">GitHub</a></p>
         url = element.attrs.get('href', 'No link')
         markups = []
@@ -114,11 +123,11 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        markups.append(('url', [' (', url, ')']))
-        return (element.name,markups)
+        markups.append(('a', [' (',('url', url), ')']))
+        return (markup_name or element.name,markups)
         
     @make_padding(0, 2)
-    def _h1(self, element):
+    def _h1(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -127,14 +136,14 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        h = urwid.Text(('h1' ,markups))
+        h = urwid.Text((markup_name or 'h1' ,markups))
         void_divider = urwid.Divider(" ", 0, 0)
         block = urwid.AttrMap(h, 'header')
         divider = urwid.Divider("=", 0, 2)
         return urwid.Pile([void_divider, block, divider])
     
     @make_padding(1, 2)
-    def _h2(self, element):
+    def _h2(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -143,7 +152,7 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        h = urwid.Text(('h2' ,markups))
+        h = urwid.Text((markup_name or 'h2' ,markups))
         void_divider = urwid.Divider(" ", 0, 0)
         block = urwid.AttrMap(h, 'header')
         divider = urwid.Divider("=", 0, 1)
@@ -151,7 +160,7 @@ class ContentParser:
         #return urwid.Padding(h, align='left', width=('relative', 100), min_width=None, left=1, right=2)
 
     @make_padding(2, 2)
-    def _h3(self, element):
+    def _h3(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -160,7 +169,7 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        h = urwid.Text(('h3' ,markups))
+        h = urwid.Text((markup_name or 'h3' ,markups))
         void_divider = urwid.Divider(" ", 0, 0)
         block = urwid.AttrMap(h, 'header')
         divider = urwid.Divider("=", 0, 1)
@@ -168,7 +177,7 @@ class ContentParser:
 
 
     @make_padding(3, 2)
-    def _h4(self, element):
+    def _h4(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -177,7 +186,7 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        h = urwid.Text(('h4' ,markups))
+        h = urwid.Text((markup_name or 'h4' ,markups))
         void_divider = urwid.Divider(" ", 0, 0)
         block = urwid.AttrMap(h, 'header')
         divider = urwid.Divider("-", 0, 1)
@@ -185,7 +194,7 @@ class ContentParser:
         return h
 
     @make_padding(4, 2)
-    def _h5(self, element):
+    def _h5(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -194,14 +203,14 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        h = urwid.Text(('h5' ,markups))
+        h = urwid.Text((markup_name or 'h5' ,markups))
         void_divider = urwid.Divider(" ", 0, 0)
         block = urwid.AttrMap(h, 'header')
         divider = urwid.Divider("-")
         return urwid.Pile([void_divider, block, divider])
 
     @make_padding(5, 2)
-    def _h6(self, element):
+    def _h6(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name:
@@ -210,7 +219,7 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        h = urwid.Text(('h6' ,markups))
+        h = urwid.Text((markup_name or 'h6' ,markups))
         void_divider = urwid.Divider(" ", 0, 0)
         block = urwid.AttrMap(h, 'header')
         divider = urwid.Divider(" ")
@@ -218,7 +227,7 @@ class ContentParser:
 
 
     @make_padding(5, 2)
-    def _div(self, element):
+    def _div(self, element, markup_name=None):
         if 'class' not in element.attrs or 'highlight' not in element.attrs['class']:
             return self.simple_tag2markup(element)
             
@@ -233,7 +242,7 @@ class ContentParser:
                 markups.append(markup)
             else:
                 markups.append(child)
-        txt = urwid.Text(('highlight', markups))
+        txt = urwid.Text((markup_name or 'highlight', markups))
         innePadder = urwid.Padding(txt, align='left', width=('relative', 100), min_width=None, left=2, right=2)
         block = urwid.AttrMap(innePadder, 'code_block')
         void_divider = urwid.Divider(" ")
@@ -241,17 +250,17 @@ class ContentParser:
         return piles
 
     @make_padding(5, 2)
-    def _pre(self, element):
+    def _pre(self, element, markup_name=None):
         
         markup = self._hightlight(element)
-        txt = urwid.Text(('pre', markup))
+        txt = urwid.Text((markup_name or 'pre', markup))
         innePadder = urwid.Padding(txt, align='left', width=('relative', 100), min_width=None, left=2, right=2)
         block = urwid.AttrMap(innePadder, 'code_block')
         void_divider = urwid.Divider(" ")
         piles = urwid.Pile([void_divider, block, void_divider])
         return piles
 
-    def _hightlight(self, element):
+    def _hightlight(self, element, markup_name=None):
         markups = []
         for child in element.children:
             if child.name == 'span' and 'class' in child.attrs:
@@ -331,6 +340,11 @@ class PageListBox(urwid.ListBox):
     Simple listbox with basic navigation.
     """
 
+    def __init__(self, list_walker):
+        self.number_pressed = ""
+        self._is_number = re.compile('\d{1}')
+        super().__init__(list_walker)
+
     def mouse_event(self, size, event, button, col, row, focus):
 
         if event == 'mouse press':
@@ -347,22 +361,24 @@ class PageListBox(urwid.ListBox):
     def keypress(self, size, key):
         cols, rows = size
         commands = {
-                    'j': (1, 'down'),
-                    'k': (1, 'up'),
-                    'd': (rows//2, 'down'),
-                    'e': (rows//2, 'up'),
-                    'f': (1, 'page down'),
-                    'b': (1, 'page up')
+                    ('j', 'e', 'enter', 'ctrl e', 'ctrl n'): (1, 'down', True),
+                    ('k', 'y', 'ctrl k', 'ctrl p'): (1, 'up', True),
+                    ('d', 'ctrl d'): (rows//2, 'down', False), 
+                    ('e', 'ctrl e'): (rows//2, 'up', False), 
+                    ('f', 'ctrl f', ' '): (1, 'page down', False),
+                    ('b', 'ctrl b'): (1, 'page up', False)
                 }
-        command_map = commands.get(key)
-        if command_map:
-            number, command = command_map
+        matched = [v for k, v in commands.items() if key in k]
+        if matched:
+            number, command, multi = matched[0]
+            if self.number_pressed and multi:
+                number *= int(self.number_pressed)
             for _ in range(0, number):
                 self.keypress(size, command)
+            self.number_pressed = ""
             return True
-        if key == 'q':
+        elif self._is_number.match(key):
+            self.number_pressed += key
+        elif key == 'q':
             raise urwid.ExitMainLoop()
         return super().keypress(size, key)       
-    
-
-

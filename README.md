@@ -76,6 +76,18 @@ optional arguments:
 Markup file previewer by sean
 ```
 
+### Navigation 
+
+Navigations are like `less`:
+```
+j, e, enter, ctrl e, ctrl n: Forward one line, when preceded by a number N, Forward N line
+k, y, ctrl k, ctrl p: Backward one line, when preceded by a number N, Backward N line
+d, ctrl d: Forward one half-window
+e, ctrl e: Backward one half-window
+f, ctrl f, space: Forward  one window
+b, ctrl b: Backward one window
+```
+
 ## Customization
 Currently, you can custom your palette file. Default palette file is in `muv/conf/palette.json`, and it is a json format file which is self described, you can copy this file and change it and put it in the directory `~/.muv/`.
 

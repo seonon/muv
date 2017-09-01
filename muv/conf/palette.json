@@ -127,6 +127,15 @@
             "bgh": ""
         },
         {
+            "name": "url",
+            "description":"url",
+            "fg": "underline",
+            "bg": "",
+            "mono": "",
+            "fgh": "",
+            "bgh": ""
+        },
+        {
             "name": "em",
             "description":"italic text",
             "fg": "dark green,italics",
@@ -217,6 +226,15 @@
             "name": "code_block",
             "description":"expand the whole code area to full screen width",
             "fg": "",
+            "bg": "black",
+            "mono": "",
+            "fgh": "",
+            "bgh": ""
+        },
+        {
+            "name": "blockquote",
+            "description":"expand the whole quote area to full screen width",
+            "fg": "light gray",
             "bg": "black",
             "mono": "",
             "fgh": "",
