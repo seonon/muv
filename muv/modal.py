@@ -1,5 +1,5 @@
 """
-
+modals
 """
 import logging
 import webbrowser
@@ -17,6 +17,7 @@ from .util import make_padding
 class ContentParser:
 
     def __init__(self, config={}):
+        """Parse markdown contents and create urwid widgets."""
         self.config = config if config else {}
         self.tag2method = {
             'code': self.simple_tag2markup,
@@ -27,15 +28,18 @@ class ContentParser:
         self.highlight_set = ['kd', 'nx', 'nf', 'ne', 's1', 's2', 'k']
 
     def markdown2markup(self, infile):
+        """Convert markdown file to urwid widgets"""
         html = self.markdown2html(infile)
         return self.html2markup(html)
 
     def markdown2html(self, infile):
+        """Convert markdown file to html"""
         source = open(infile).read()
         html = markdown.markdown(source, extensions=[GithubFlavoredMarkdownExtension()])
         return html
 
     def html2markup(self, html):
+        """Convert html to urwid widgets"""
         listbox_content = []
         soup = BeautifulSoup(html, 'html.parser')
         for e in soup.body or soup:
@@ -51,6 +55,7 @@ class ContentParser:
         return listbox_content
 
     def tag2text(self, element, markup_name=None):
+        """Convert html tag to plain text with tag as attributes recursively"""
         content = []
         for child in element.children:
             if isinstance(child, Tag):
@@ -64,6 +69,7 @@ class ContentParser:
         return (element.name, content)
     
     def simple_tag2markup(self, element, markup_name=None):
+        """Convert html top-level element to text and attributes"""
         markups = []
         for child in element.children:
             if child.name:
@@ -88,7 +94,6 @@ class ContentParser:
         innePadder = urwid.Padding(quote, align='left', width=('relative', 100), min_width=None, left=2, right=2)
         block = urwid.AttrMap(innePadder, 'blockquote')
         void_divider = urwid.Divider(" ")
-        #block = urwid.AttrMap(quote, 'header')
         return urwid.Pile([void_divider, block, void_divider])
 
     def _p(self, element, markup_name=None):
@@ -105,7 +110,6 @@ class ContentParser:
 
     
     def _img(self, element, markup_name=None):
-        #<img alt="GitHub Logo" src="/images/logo.png" />
         url = element.attrs.get('src', 'No link')
         alt = element.attrs.get('alt', 'Here is a image from '+url) 
 
@@ -113,7 +117,6 @@ class ContentParser:
         return markup
 
     def _a(self, element, markup_name=None):
-        #<a href="http://github.com">GitHub</a></p>
         url = element.attrs.get('href', 'No link')
         markups = []
         for child in element.children:
@@ -346,25 +349,26 @@ class PageListBox(urwid.ListBox):
         super().__init__(list_walker)
 
     def mouse_event(self, size, event, button, col, row, focus):
-
+        """Customize mouse event actions"""
         if event == 'mouse press':
             if button == 4:
-                for _ in range(5):
+                for _ in range(2):
                     self.keypress(size, 'up')
                 return True
             if button == 5:
-                for _ in range(3):
+                for _ in range(2):
                     self.keypress(size, 'down')
                 return True
             return super().mouse_event(size, event, button, col, row, focus)
 
     def keypress(self, size, key):
+        """Customize keyboard press actions for page navigation like less."""
         cols, rows = size
         commands = {
                     ('j', 'e', 'enter', 'ctrl e', 'ctrl n'): (1, 'down', True),
                     ('k', 'y', 'ctrl k', 'ctrl p'): (1, 'up', True),
                     ('d', 'ctrl d'): (rows//2, 'down', False), 
-                    ('e', 'ctrl e'): (rows//2, 'up', False), 
+                    ('u', 'ctrl u'): (rows//2, 'up', False), 
                     ('f', 'ctrl f', ' '): (1, 'page down', False),
                     ('b', 'ctrl b'): (1, 'page up', False)
                 }

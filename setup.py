@@ -1,10 +1,18 @@
-from setuptools import setup, find_packages
+"""Package setup"""
+import os
+from os.path import expanduser
 
+from setuptools import find_packages, setup
+
+from muv import __version__
+
+exec(open(os.path.join("muv", "version.py")).read())
 
 setup(
     name='muv',
-    version='0.0.0',
-    description='View Make Up file like markdown',
+    version=__version__,
+    description='View markdown file in command line',
+    long_description='View markdown file in command line',
     url='https://github.com/seonon/muv',
     author='seonon',
     author_email='nanttery@gmail.com',
@@ -35,5 +43,6 @@ setup(
             'muv=muv:main',
         ],
     },
-    data_files=[('/etc/muv', ['muv/conf/muv.conf', 'muv/conf/palette.json'])]
+    data_files=[(expanduser('~/.muv'), ['muv/conf/muv.conf', 'muv/conf/palette.json', 'muv/conf/palette_without_italics.json'])],
+    include_package_data=True
 )
